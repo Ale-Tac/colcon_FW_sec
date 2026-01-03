@@ -1,0 +1,11 @@
+# Request: pose of the piece at source and target cells (in world frame)
+geometry_msgs/Pose source_pose
+geometry_msgs/Pose target_pose
+
+---
+# Response
+bool success
+string message
+
+# Trajectory of robot configurations, as JointState waypoints
+sensor_msgs/JointState[] trajectory

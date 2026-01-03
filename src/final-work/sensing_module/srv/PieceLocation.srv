@@ -1,0 +1,5 @@
+int32 aruco_id
+---
+bool found
+geometry_msgs/Pose pose
+string cell

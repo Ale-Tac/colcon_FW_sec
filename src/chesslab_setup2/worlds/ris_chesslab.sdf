@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<sdf version="1.5">
+  <world name="ris_chesslab">
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
+
+    <!-- A global light source -->
+    <light name='user_directional_light_0' type='directional'>
+      <pose>0 -0.2 0.45 0.35 0 0</pose>
+      <diffuse>0.7 0.7 0.7 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <direction>0.1 0.1 -0.9</direction>
+      <attenuation>
+        <range>20</range>
+        <constant>0.5</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <cast_shadows>1</cast_shadows>
+    </light>
+
+    <!-- A global light source -->
+    <include>
+      <uri>
+        https://fuel.gazebosim.org/1.0/OpenRobotics/models/sun
+      </uri>
+    </include>  
+
+    <!-- A ground plane -->
+    <include>
+      <uri>
+        https://fuel.gazebosim.org/1.0/OpenRobotics/models/Ground%20Plane
+      </uri>
+      <pose>0 0 -0.004 0 0 0</pose>
+    </include>
+
+    <!-- chessboard -->
+    <include>
+      <uri>model://flat_chessboard</uri>
+      <pose>0 0 -0.002 0 0 1.5708</pose>
+      <static>1</static>
+    </include>
+
+    <!-- black pieces -->
+    <include>
+      <uri>model://kingW</uri>
+      <pose>0.075 -0.025 0.006 0 0 3.14159</pose>
+    </include>
+
+    <!-- camera support model -->
+    <include>
+      <uri>model://camera_with_support</uri>
+        <pose>-0.021 -0.305 0.004 0 0 3.14159</pose>
+    </include>
+
+  </world>
+</sdf>
+
+
+
+      
