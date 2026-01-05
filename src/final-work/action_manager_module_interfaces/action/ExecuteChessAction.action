@@ -1,0 +1,11 @@
+string piece_aruco_id     # ej: "316"
+string from_cell          # ej: "e2"
+string to_cell            # ej: "e4"
+bool is_capture
+bool is_castle
+---
+bool success
+string message
+---
+string state
+float32 progress

@@ -106,6 +106,19 @@ def generate_launch_description():
         ],
     )
 
+    # Temporary static TF to ensure camera frame exists for ArUco publisher
+    tf_camera_frame = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        name="tf_camera_in_world",
+        output="screen",
+        arguments=[
+            "0.0", "0.0", "0.0",    # x y z (identity - adjust if needed)
+            "0.0", "0.0", "0.0",    # roll pitch yaw
+            "world", "camera_color_optical_frame",
+        ],
+    )
+
     # --- sensing_node ---
     sensing_params = PathJoinSubstitution(
         [FindPackageShare("sensing_module"), "config", "sensing_node_params.yaml"]
@@ -129,6 +142,7 @@ def generate_launch_description():
     ld.add_action(camera_frame_arg)
     ld.add_action(chesslab_scene)
     ld.add_action(tf_chess_frame)
+    ld.add_action(tf_camera_frame)
     ld.add_action(OpaqueFunction(function=aruco_pipeline_setup))
     ld.add_action(sensing_node)
     return ld

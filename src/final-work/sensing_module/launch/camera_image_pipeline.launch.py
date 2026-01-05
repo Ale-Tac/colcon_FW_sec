@@ -62,7 +62,7 @@ def generate_launch_description():
     )
 
     camera_frame_arg = DeclareLaunchArgument(
-        'camera_frame', default_value='camera_link_optical',
+        'camera_frame', default_value='camera_color_optical_frame',
         description='Camera frame set at plugin in the model.sdf of the camera'
     )
 

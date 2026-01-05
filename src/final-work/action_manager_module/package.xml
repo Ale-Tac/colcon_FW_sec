@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>action_manager_module</name>
+  <version>0.0.0</version>
+  <description>Action server that orchestrates sensing + planning + execution (gripper + controller).</description>
+  <maintainer email="alessandro.maria.taccione@estudiantat.upc.edu">aletacc</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Core -->
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+
+  <!-- Messages -->
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>control_msgs</depend>
+
+  <!-- Your interfaces -->
+  <depend>action_manager_module_interfaces</depend>
+
+  <!-- Your modules -->
+  <depend>sensing_module</depend>
+  <depend>planning_module</depend>
+
+  <!-- Gripper -->
+  <depend>robotiq_85_gripper_server</depend>
+
+  <!-- Se ti serve davvero (solo se usi attach/detach nel codice) -->
+  <!-- <depend>chesslab_setup2_interfaces</depend> -->
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

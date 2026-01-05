@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>action_manager_module_interfaces</name>
+  <version>0.0.0</version>
+  <description>Interfaces (Action) for action_manager_module.</description>
+  <maintainer email="alessandro.maria.taccione@estudiantat.upc.edu">aletacc</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <build_depend>rosidl_default_generators</build_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
+</package>

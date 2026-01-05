@@ -1,4 +1,4 @@
-# Chess-Playing Robot System for UR3/UR3e with Robotiq 85 Gripper
+# final-work
 
 
 
@@ -165,10 +165,67 @@ ros2 launch chesslab_setup2 chesslab_gz.launch.py launch_rviz:=true
 ```
 - Terminal 2: Action manager server
 ```
+cd /home/mateovp/data/workspaces/colcon_wsFinalWork
+source install/setup.bash
 ros2 run action_manager_module action_manager_server
 ```
 
 - Terminal 3: action requirement
 ```
+cd /home/mateovp/data/workspaces/colcon_wsFinalWork
+source install/setup.bash
 ros2 action send_goal /execute_chess_action action_manager_module_interfaces/action/ExecuteChessAction "{piece_aruco_id: '316', from_cell: 'e2', to_cell: 'a4', is_capture: false, is_castle: false}" --feedback
 ```
+
+**⚠️ IMPORTANTE:** El action_manager_module fue corregido para usar callbacks asíncronos en lugar de `spin_until_future_complete`, lo cual causaba deadlock. Ver [SOLUCION_ROBOT_INMOVIL.md](../../../SOLUCION_ROBOT_INMOVIL.md) para detalles técnicos.
+
+**🔧 TROUBLESHOOTING:** Si experimentas timeouts en la ejecución de trayectorias, ver [TROUBLESHOOTING_TIMEOUT.md](../../../TROUBLESHOOTING_TIMEOUT.md).
+
+---
+
+## Complete End-to-End Test Sequence
+
+To test the complete system (sensing → planning → execution), run in this order:
+
+**Terminal 1: Gazebo + Sensing Node**
+```bash
+cd /home/mateovp/data/workspaces/colcon_wsFinalWork
+source install/setup.bash
+ros2 launch sensing_module chesslab_sensing.launch.py
+```
+
+**Terminal 2: IK Server**
+```bash
+cd /home/mateovp/data/workspaces/colcon_wsFinalWork
+source install/setup.bash
+ros2 run kinenikros2 kinenik_srv_server
+```
+
+**Terminal 3: Planning Node**
+```bash
+cd /home/mateovp/data/workspaces/colcon_wsFinalWork
+source install/setup.bash
+ros2 launch planning_module planning_node.launch.py
+```
+
+**Terminal 4: Action Manager**
+```bash
+cd /home/mateovp/data/workspaces/colcon_wsFinalWork
+source install/setup.bash
+ros2 run action_manager_module action_manager_server
+```
+
+**Terminal 5: Execute Test Action**
+```bash
+cd /home/mateovp/data/workspaces/colcon_wsFinalWork
+source install/setup.bash
+ros2 action send_goal /execute_chess_action action_manager_module_interfaces/action/ExecuteChessAction "{piece_aruco_id: '316', from_cell: 'E1', to_cell: 'E3'}" --feedback
+```
+
+**Useful Verifications:**
+- Check detected cell: `ros2 service call /piece_location sensing_module/srv/PieceLocation "{aruco_id: 316}"`
+- Monitor trajectory action: `ros2 action list | grep trajectory`
+- View robot controllers: `ros2 control list_controllers`
+- View active nodes: `ros2 node list`
+
+**Note:** The action_manager_module now uses the FollowJointTrajectory action client (`/joint_trajectory_controller/follow_joint_trajectory`) with **asynchronous callbacks** to control robot movement in Gazebo simulation, ensuring proper execution and feedback **without deadlock**. The previous implementation using `spin_until_future_complete` caused the robot to not move because it blocked the executor. See [SOLUCION_ROBOT_INMOVIL.md](../../SOLUCION_ROBOT_INMOVIL.md) for technical details.

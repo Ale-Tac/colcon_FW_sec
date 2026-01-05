@@ -29,10 +29,18 @@ public:
       "aruco_ids", std::vector<int64_t>{316, 213, 201});
     this->declare_parameter<std::string>(
       "yaml_output_path", "/tmp/chess_configuration_sensed.yaml");
+    // Calibration defaults computed by calibrate_sensing.py
+    this->declare_parameter<double>("calib_theta", 1.5678265714466135);
+    this->declare_parameter<double>("calib_tx", 0.00678636450629377);
+    this->declare_parameter<double>("calib_ty", 0.002087704887719151);
 
     auto ids_param = this->get_parameter("aruco_ids").as_integer_array();
     aruco_ids_.assign(ids_param.begin(), ids_param.end());
     yaml_output_path_ = this->get_parameter("yaml_output_path").as_string();
+
+    calib_theta_ = this->get_parameter("calib_theta").as_double();
+    calib_tx_ = this->get_parameter("calib_tx").as_double();
+    calib_ty_ = this->get_parameter("calib_ty").as_double();
 
     timer_ = this->create_wall_timer(
       500ms, std::bind(&SensingNode::update_pieces, this));
@@ -61,6 +69,10 @@ private:
   std::map<int, PieceInfo> pieces_;
   std::string yaml_output_path_;
 
+  double calib_theta_{0.0};
+  double calib_tx_{0.0};
+  double calib_ty_{0.0};
+
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Service<sensing_module::srv::PieceLocation>::SharedPtr service_;
 
@@ -69,23 +81,21 @@ private:
 
   std::string pose_to_cell(const geometry_msgs::msg::Pose & pose)
   {
-    // Board coordinate system:
-    // - Center at (0, 0) in world frame (chess_frame)
-    // - Each square is 5cm (0.05m)
-    // - X-axis: A(0) to H(7), left to right
-    // - Y-axis: 1(0) to 8(7), bottom to top
-    // 
-    // For cell E4: file=4, rank=3
-    //   x = (4 - 3.5) * 0.05 = 0.025m
-    //   y = (3 - 3.5) * 0.05 = -0.025m
-    
-    double fx = pose.position.x / SQUARE_SIZE + 3.5;
-    double fy = pose.position.y / SQUARE_SIZE + 3.5;
+    // Apply calibration rotation + translation before mapping to cell
+    // World -> Board: subtract the board offset from world coordinates
+    double x = pose.position.x;
+    double y = pose.position.y;
+    double ct = std::cos(calib_theta_);
+    double st = std::sin(calib_theta_);
+    double x_new = ct * (x - calib_tx_) - st * (y - calib_ty_);
+    double y_new = st * (x - calib_tx_) + ct * (y - calib_ty_);
+
+    double fx = x_new / SQUARE_SIZE + 3.5;
+    double fy = y_new / SQUARE_SIZE + 3.5;
 
     int file_index = static_cast<int>(std::round(fx));
     int rank_index = static_cast<int>(std::round(fy));
 
-    // Clamp to valid range
     if (file_index < 0) file_index = 0;
     if (file_index > 7) file_index = 7;
     if (rank_index < 0) rank_index = 0;
@@ -94,14 +104,26 @@ private:
     char file_char = static_cast<char>('A' + file_index);
     int rank = rank_index + 1;
 
-    std::string result = std::string(1, file_char) + std::to_string(rank);
-    
-    // Debug logging (uncomment for troubleshooting)
-    // RCLCPP_DEBUG(this->get_logger(),
-    //   "pose_to_cell: x=%.3f, y=%.3f -> fx=%.2f, fy=%.2f -> file=%d, rank=%d -> %s",
-    //   pose.position.x, pose.position.y, fx, fy, file_index, rank_index, result.c_str());
+    return std::string(1, file_char) + std::to_string(rank);
+  }
 
-    return result;
+  // Transform pose from Gazebo world frame to board frame using calibration
+  geometry_msgs::msg::Pose transform_to_board_frame(const geometry_msgs::msg::Pose & pose_world)
+  {
+    geometry_msgs::msg::Pose pose_board = pose_world;
+    
+    // Apply calibration transformation: rotation + translation
+    // World -> Board: subtract the board offset from world coordinates
+    double x = pose_world.position.x;
+    double y = pose_world.position.y;
+    double ct = std::cos(calib_theta_);
+    double st = std::sin(calib_theta_);
+    
+    pose_board.position.x = ct * (x - calib_tx_) - st * (y - calib_ty_);
+    pose_board.position.y = st * (x - calib_tx_) + ct * (y - calib_ty_);
+    // Z remains the same
+    
+    return pose_board;
   }
 
   void update_pieces()
@@ -112,29 +134,35 @@ private:
       const std::string frame_id = "aruco_" + std::to_string(id);
 
       try {
-        geometry_msgs::msg::TransformStamped tf =
-          tf_buffer_.lookupTransform("world", frame_id, tf2::TimePointZero);
+        // Prefer transforms relative to the chess board frame so pose->cell
+        // mapping uses board-aligned axes. Fall back to 'world' if unavailable.
+        geometry_msgs::msg::TransformStamped tf;
+        try {
+          tf = tf_buffer_.lookupTransform("chess_frame", frame_id, tf2::TimePointZero);
+        } catch (const tf2::TransformException & ex_inner) {
+          (void)ex_inner;
+          tf = tf_buffer_.lookupTransform("world", frame_id, tf2::TimePointZero);
+        }
 
-        geometry_msgs::msg::Pose pose;
-        pose.position.x = tf.transform.translation.x;
-        pose.position.y = tf.transform.translation.y;
-        pose.position.z = tf.transform.translation.z;
-        pose.orientation = tf.transform.rotation;
+        geometry_msgs::msg::Pose pose_world;
+        pose_world.position.x = tf.transform.translation.x;
+        pose_world.position.y = tf.transform.translation.y;
+        pose_world.position.z = tf.transform.translation.z;
+        pose_world.orientation = tf.transform.rotation;
 
-        std::string cell = pose_to_cell(pose);
-        
-        // Log for debugging (helps identify coordinate system issues)
-        RCLCPP_DEBUG(this->get_logger(),
-          "Updated piece %d: pose=(%.3f, %.3f, %.3f) -> cell=%s",
-          id, pose.position.x, pose.position.y, pose.position.z, cell.c_str());
+        // Calculate cell from world pose (pose_to_cell applies calibration internally)
+        std::string cell = pose_to_cell(pose_world);
 
-        PieceInfo info{pose, cell, true};
+        // Transform pose to board frame for consistency with action_manager
+        geometry_msgs::msg::Pose pose_board = transform_to_board_frame(pose_world);
+
+        PieceInfo info{pose_board, cell, true};  // Store transformed pose
 
         auto it = pieces_.find(id);
         if (it == pieces_.end() ||
             it->second.cell != cell ||
-            it->second.pose.position.x != pose.position.x ||
-            it->second.pose.position.y != pose.position.y) {
+            it->second.pose.position.x != pose_board.position.x ||
+            it->second.pose.position.y != pose_board.position.y) {
           changed = true;
         }
 
