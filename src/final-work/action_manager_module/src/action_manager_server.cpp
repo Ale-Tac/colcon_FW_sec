@@ -128,9 +128,8 @@ private:
     std::shared_ptr<const ExecuteChessAction::Goal> goal)
   {
     RCLCPP_INFO(get_logger(),
-      "Goal: piece=%s from=%s to=%s capture=%d castle=%d",
+      "Goal: piece=%s to=%s capture=%d castle=%d",
       goal->piece_aruco_id.c_str(),
-      goal->from_cell.c_str(),
       goal->to_cell.c_str(),
       goal->is_capture,
       goal->is_castle);
@@ -622,8 +621,7 @@ private:
       return;
     }
 
-    const auto from_cell = normalize_cell(goal_handle->get_goal()->from_cell);
-    const auto to_cell   = normalize_cell(goal_handle->get_goal()->to_cell);
+    const auto to_cell = normalize_cell(goal_handle->get_goal()->to_cell);
 
     // 2) optional: check services up-front
     if (!wait_for_service_or_abort(piece_location_client_, "piece_location", goal_handle, result, feedback)) return;
@@ -745,13 +743,6 @@ private:
       publish_fb("done", 1.0f);
       if (goal_still_active(goal_handle)) goal_handle->succeed(result);
       return;
-    }
-
-    // (opzionale) check coerenza from_cell: warn but continue using sensed pose
-    if (sensed_cell != from_cell) {
-      RCLCPP_WARN(get_logger(),
-        "Requested from_cell=%s but sensing says piece is at %s (continuo comunque).",
-        from_cell.c_str(), sensed_cell.c_str());
     }
 
     geometry_msgs::msg::Pose dst_pose = cell_to_pose(to_cell);
