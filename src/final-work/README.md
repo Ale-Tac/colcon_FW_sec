@@ -1,4 +1,4 @@
-# final-work
+# Chess-Playing Robot System for UR3/UR3e with Robotiq 85 Gripper
 
 
 

@@ -1,0 +1,25 @@
+# ChessAction - High-level action for chess moves
+# Supports: MOVE, CAPTURE, CASTLING
+
+# Action types
+uint8 ACTION_MOVE = 0
+uint8 ACTION_CAPTURE = 1
+uint8 ACTION_CASTLING = 2
+
+# Request
+uint8 action_type          # MOVE, CAPTURE, or CASTLING
+int32 piece_aruco_id       # ArUco ID of the piece to move
+string target_square       # Target square (e.g., "E4")
+int32 captured_piece_aruco_id  # For CAPTURE: ArUco ID of piece to capture (0 if none)
+string castling_side       # For CASTLING: "kingside" or "queenside"
+
+---
+# Result
+bool success               # Whether the action succeeded
+string message            # Detailed result message
+string final_square       # Where the piece ended up (from sensing)
+
+---
+# Feedback
+float32 progress          # 0.0 to 100.0
+string status            # Current stage (sensing, planning, executing, etc.)

@@ -69,12 +69,23 @@ private:
 
   std::string pose_to_cell(const geometry_msgs::msg::Pose & pose)
   {
+    // Board coordinate system:
+    // - Center at (0, 0) in world frame (chess_frame)
+    // - Each square is 5cm (0.05m)
+    // - X-axis: A(0) to H(7), left to right
+    // - Y-axis: 1(0) to 8(7), bottom to top
+    // 
+    // For cell E4: file=4, rank=3
+    //   x = (4 - 3.5) * 0.05 = 0.025m
+    //   y = (3 - 3.5) * 0.05 = -0.025m
+    
     double fx = pose.position.x / SQUARE_SIZE + 3.5;
     double fy = pose.position.y / SQUARE_SIZE + 3.5;
 
     int file_index = static_cast<int>(std::round(fx));
     int rank_index = static_cast<int>(std::round(fy));
 
+    // Clamp to valid range
     if (file_index < 0) file_index = 0;
     if (file_index > 7) file_index = 7;
     if (rank_index < 0) rank_index = 0;
@@ -83,7 +94,14 @@ private:
     char file_char = static_cast<char>('A' + file_index);
     int rank = rank_index + 1;
 
-    return std::string(1, file_char) + std::to_string(rank);
+    std::string result = std::string(1, file_char) + std::to_string(rank);
+    
+    // Debug logging (uncomment for troubleshooting)
+    // RCLCPP_DEBUG(this->get_logger(),
+    //   "pose_to_cell: x=%.3f, y=%.3f -> fx=%.2f, fy=%.2f -> file=%d, rank=%d -> %s",
+    //   pose.position.x, pose.position.y, fx, fy, file_index, rank_index, result.c_str());
+
+    return result;
   }
 
   void update_pieces()
@@ -104,6 +122,11 @@ private:
         pose.orientation = tf.transform.rotation;
 
         std::string cell = pose_to_cell(pose);
+        
+        // Log for debugging (helps identify coordinate system issues)
+        RCLCPP_DEBUG(this->get_logger(),
+          "Updated piece %d: pose=(%.3f, %.3f, %.3f) -> cell=%s",
+          id, pose.position.x, pose.position.y, pose.position.z, cell.c_str());
 
         PieceInfo info{pose, cell, true};
 
